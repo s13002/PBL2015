@@ -70,7 +70,7 @@ public class SystemManager {
 		    "                メニュー\n" +
 		    "  従業員検索(S)\n" +
 		    "  従業員管理(JI：追加 JU：更新 JD：削除)\n" +
-		    "  顧客管理(CI：追加 CU：更新)\n" +
+		    "  顧客管理(CI：追加 CU：更新)\n" + // CI/CU
 		    "  稼働状況管理(KI：追加 KD：削除)\n" +
 		    "  終了(X)\n" +
 		    "_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/\n",
@@ -181,7 +181,8 @@ public class SystemManager {
 		    true
 		 );
 
-		// 従業員を追加する状態
+        // --v CI/CU
+		// 顧客を追加する状態
 		sts14 = new AddClientStatus(
 		    "",
 		    "エンターキーを押すとメニューに戻ります。>",
@@ -189,13 +190,14 @@ public class SystemManager {
 		    clist
 		 );
 
-		// 従業員の情報を更新する状態
+		// 顧客の情報を更新する状態
 		sts15 = new UpdateClientStatus(
 		    "",
 		    "更新しました。\nエンターキーを押すとメニューに戻ります。>",
 		    false,
 		    clist
 		 );
+        // --^ CI/CU
 
 		sts1.setNextStatus( "S", sts2 );
 		sts1.setNextStatus( "JI", sts8 );
