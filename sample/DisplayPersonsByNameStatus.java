@@ -1,6 +1,8 @@
 /* DisplayPersonsByNameStatus.java
  */
 
+import java.util.stream.IntStream;
+
 /* DisplayPersonsByNameStatus
  */
 public class DisplayPersonsByNameStatus extends ConsoleStatus {
@@ -10,7 +12,10 @@ public class DisplayPersonsByNameStatus extends ConsoleStatus {
 	private PersonList plist;
 	private PersonList selectedList;
 	private DisplayPersonStatus next;
-	private int next_disp_id = 0;
+	private int idx;
+	private static final int PAGE = 3;
+	private boolean isInitDisp;
+
 
 	/**
 	 * コンストラクタ DisplayPersonsByNameStatus
@@ -35,7 +40,7 @@ public class DisplayPersonsByNameStatus extends ConsoleStatus {
 	 * @throws Exception
 	 */
 	public void displayFirstMess() throws Exception {
-		displayList(" ");
+		displayList("");
 		super.displayFirstMess();
 	}
 
@@ -53,55 +58,51 @@ public class DisplayPersonsByNameStatus extends ConsoleStatus {
 	 * displayList
 	 */
 	public void displayList(String code) {
-		// 入力された氏名に一致または氏名を含む従業員のレコードだけを
+		// 入力された職種をもつ従業員のレコードだけを
 		// selectedListに取り出す
-		selectedList = plist.searchByName( name );
+		selectedList = plist.searchByName(name);
 		// selectedListの件数＝0ならば当該職種をもつ
 		// 従業員はいないと表示
-		if( selectedList.size() <= 0 )
-			System.out.println( "従業員が存在しません。" );
-		else{
-			if(code.equals(" ") && next_disp_id == 0){
-				System.out.println("最初のページを表示");
-				int rows = selectedList.size() >= 3 ? 3 : selectedList.size();
-				for(int i=0; i<rows; i++){
-					System.out.println( selectedList.getRecord(i).toString() );
+		if (selectedList.size() <= 0 && code.isEmpty()) {
+			System.out.println("従業員が存在しません。");
+			return;
+		}
+
+		if (isInitDisp || selectedList.size() <= 3) {
+			IntStream.range(0, selectedList.size())
+					.mapToObj(selectedList::getRecord)
+					.limit(PAGE)
+					.forEach(System.out::println);
+			return;
+		}
+
+		if (!code.isEmpty()) {
+			if (code.equals("P")) {
+				if (idx - PAGE == -3) {
+					idx = selectedList.size() - PAGE;
+				} else if (idx - PAGE >= 0) {
+					idx -= PAGE;
+				} else {
+					IntStream.range(0, idx)
+							.mapToObj(selectedList::getRecord)
+							.forEach(System.out::println);
+					idx = 0;
+					return;
 				}
-				next_disp_id = rows;
-			}else if(code.equals("N")){
-				if(selectedList.size()>next_disp_id){
-					System.out.println("次のページを表示");
-					int rows = selectedList.size()-next_disp_id >= 3 ? 3 : selectedList.size()-next_disp_id;
-					for(int i=next_disp_id; i<next_disp_id+rows; i++){
-						System.out.println( selectedList.getRecord(i).toString() );
-					}
-					next_disp_id += rows;
-				}else{
-					System.out.println("最後まで表示して頭に戻りました");
-					int rows = selectedList.size() >= 3 ? 3 : selectedList.size();
-					for(int i=0; i<rows; i++){
-						System.out.println( selectedList.getRecord(i).toString() );
-					}
-					next_disp_id = rows;
+			}
+
+			if (code.equals("N")) {
+				if (idx + PAGE >= selectedList.size()) {
+					idx = 0;
+				} else {
+					idx += PAGE;
 				}
-			}/*else if(code.equals("P")){
-				System.out.println("現在のnext_disp_id: " + next_disp_id);
-				if((next_disp_id-6 >= 0){
-					System.out.println("前のページを表示");
-					next_disp_id  -= 6;
-					for(int i=next_disp_id; i<next_disp_id+3; i++){
-						System.out.println( selectedList.getRecord(i).toString() );
-					}
-					next_disp_id += 3;
-				}else{
-					System.out.println("末尾の３件を表示");
-					int  rows =  selectedList.size() >= 3 ? 3 : selectedList.size();
-					for(int i=selectedList.size()-rows; i<selectedList.size(); i++){
-						System.out.println( selectedList.getRecord(i).toString() );
-					}
-					next_disp_id = selectedList.size();
-				}
-			}*/
+			}
+
+			IntStream.range(idx, selectedList.size())
+					.mapToObj(selectedList::getRecord)
+					.limit(PAGE)
+					.forEach(System.out::println);
 		}
 	}
 
@@ -110,27 +111,30 @@ public class DisplayPersonsByNameStatus extends ConsoleStatus {
 	 * @param String s
 	 * @return ConsoleStatus
 	 */
-	public ConsoleStatus getNextStatus( String s ) {
-		if(s.equals("N") || s.equals("P")){
-			// N -> 次の３件、P -> 前の３件
+	public ConsoleStatus getNextStatus(String s) {
+		isInitDisp = false;
+		if ((s.equals("P") || s.equals("N")) && selectedList.size() > 3) {
 			displayList(s);
 			return this;
-		}else{
-		// 数値が入力された場合，その数値と同じIDをもつ
-		// レコードがselectedListにあるかどうか判定し，
-		// あればそれを次の状態DisplayPersonStatusに渡す
+		} else if(s.equals("E")) {
+			isInitDisp = true;
+			this.idx = 0;
+			return super.getNextStatus(s);
+		} else {
+			// 数値が入力された場合，その数値と同じIDをもつ
+			// レコードがselectedListにあるかどうか判定し，
+			// あればそれを次の状態DisplayPersonStatusに渡す
 			try {
-				int i = Integer.parseInt( s );
-				Person p = selectedList.get( i );
-				if( p == null )
+				int i = Integer.parseInt(s);
+				Person p = selectedList.get(i);
+				if (p == null)
 					return this;
 				else {
-					next.setPersonRecord( p );
+					next.setPersonRecord(p);
 					return next;
 				}
-			} catch( NumberFormatException e ) {
-				return super.getNextStatus( s );
+			} catch (NumberFormatException e) {
+				return super.getNextStatus(s);
 			}
 		}
-	}
-}
+	}}
